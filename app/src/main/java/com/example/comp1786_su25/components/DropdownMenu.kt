@@ -15,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.example.comp1786_su25.controllers.teacherFirebaseRepository
-import com.example.comp1786_su25.dataClasses.teacherModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

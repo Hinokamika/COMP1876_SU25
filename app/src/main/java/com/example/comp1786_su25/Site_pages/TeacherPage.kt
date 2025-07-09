@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.comp1786_su25.controllers.teacherFirebaseRepository
-import com.example.comp1786_su25.dataClasses.teacherModel
+import com.example.comp1786_su25.controllers.dataClasses.teacherModel
 import com.example.comp1786_su25.functionPages.Teacher.TeacherDetailsDialog
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState

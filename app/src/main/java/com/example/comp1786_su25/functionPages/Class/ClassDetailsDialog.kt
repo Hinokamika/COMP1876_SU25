@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.example.comp1786_su25.dataClasses.classModel
+import com.example.comp1786_su25.controllers.dataClasses.classModel
 import androidx.navigation.NavController
 import com.example.comp1786_su25.components.DetailItem
 import com.example.comp1786_su25.components.DetailSection

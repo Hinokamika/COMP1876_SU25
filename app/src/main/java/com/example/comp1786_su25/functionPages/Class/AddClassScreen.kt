@@ -38,11 +38,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.comp1786_su25.GymAppApplication
 import com.example.comp1786_su25.components.ClassTypeDropdown
 import com.example.comp1786_su25.components.TeacherDropdown
 import com.example.comp1786_su25.components.WheelDateTimePickerDialog
 import com.example.comp1786_su25.controllers.classFirebaseRepository
-import com.example.comp1786_su25.dataClasses.classModel
+import com.example.comp1786_su25.controllers.dataClasses.classModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +57,7 @@ fun AddClassScreen(modifier: Modifier = Modifier, navController: NavController) 
     var type_of_class by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var teacher by remember { mutableStateOf("") }
+    var createdTime by remember { mutableStateOf("") }
     var context = LocalContext.current
 
     // State for date picker
@@ -207,9 +209,45 @@ fun AddClassScreen(modifier: Modifier = Modifier, navController: NavController) 
 
             Button(
                 onClick = {
-                    classFirebaseRepository.addClass(classModel("",class_name, day_of_week, time_of_course, capacity, duration, price_per_class, type_of_class, description, teacher))
+                    var currentTime = System.currentTimeMillis().toString()
+                    // Create a new class model
+                    val newClass = classModel(
+                        "",
+                        class_name,
+                        day_of_week,
+                        time_of_course,
+                        capacity,
+                        duration,
+                        price_per_class,
+                        type_of_class,
+                        description,
+                        teacher,
+                        currentTime
+                    )
+
+                    // Save to Firebase and get Firebase ID
+                    val firebaseId = classFirebaseRepository.addClass(newClass)
+
+                    // Save to local SQLite database
+                    val classDatabaseHelper = GymAppApplication.getInstance().classDatabaseHelper
+                    val localId = classDatabaseHelper.addClass(newClass)
+
+                    // Approach 1: Update the model with the local ID
+                    newClass.localId = localId
+
+                    // Approach 2: Sync with Firebase (mark as synced)
+                    newClass.synced = true
+
+                    // Update the class with the localId
+                    if (localId > 0) {
+                        // Update the model in the database with the synced status
+                        classDatabaseHelper.updateClass(newClass)
+
+                        // Approach 3: Log for debugging
+                        android.util.Log.d("ClassSync", "Class saved with local ID: $localId and Firebase ID: $firebaseId")
+                    }
                     navController.popBackStack()
-                    Toast.makeText(context, "Class added successfully", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Class added successfully (ID: $localId)", Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)

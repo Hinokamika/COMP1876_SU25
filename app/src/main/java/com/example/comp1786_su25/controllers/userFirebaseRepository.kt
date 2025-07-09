@@ -1,7 +1,8 @@
 package com.example.comp1786_su25.controllers
 
-import com.example.comp1786_su25.dataClasses.CartModel
-import com.example.comp1786_su25.dataClasses.userModel
+import com.example.comp1786_su25.controllers.dataClasses.CartItemModel
+import com.example.comp1786_su25.controllers.dataClasses.CartModel
+import com.example.comp1786_su25.controllers.dataClasses.userModel
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.FirebaseDatabase
 import java.text.SimpleDateFormat
@@ -67,7 +68,7 @@ object userFirebaseRepository {
         val totalItems = cartSnapshot.child("total_items").getValue(Int::class.java) ?: 0
 
         // Process cart items
-        val itemsMap = mutableMapOf<String, com.example.comp1786_su25.dataClasses.CartItemModel>()
+        val itemsMap = mutableMapOf<String, CartItemModel>()
         val itemsSnapshot = cartSnapshot.child("items")
         for (itemSnapshot in itemsSnapshot.children) {
             val itemId = itemSnapshot.key ?: continue
@@ -79,7 +80,7 @@ object userFirebaseRepository {
             val type = itemSnapshot.child("type").getValue(String::class.java) ?: ""
             val quantity = itemSnapshot.child("quantity").getValue(Int::class.java) ?: 0
 
-            val cartItem = com.example.comp1786_su25.dataClasses.CartItemModel(
+            val cartItem = CartItemModel(
                 class_id = classId,
                 class_name = className,
                 price = price,

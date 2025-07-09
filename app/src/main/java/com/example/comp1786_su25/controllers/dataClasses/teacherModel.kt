@@ -1,4 +1,4 @@
-package com.example.comp1786_su25.dataClasses
+package com.example.comp1786_su25.controllers.dataClasses
 
 data class teacherModel(
     val id : String = "",
@@ -7,5 +7,6 @@ data class teacherModel(
     val phone: String = "",
     val age : String = "",
     val specialization: String = "",
-    val classList: List<String> = emptyList()
+    val classList: List<String> = emptyList(),
+    val createdAt: String = ""
 )

@@ -30,8 +30,8 @@ import com.example.comp1786_su25.components.DetailItem
 import com.example.comp1786_su25.components.DetailSection
 import com.example.comp1786_su25.controllers.classFirebaseRepository
 import com.example.comp1786_su25.controllers.userFirebaseRepository
-import com.example.comp1786_su25.dataClasses.CartModel
-import com.example.comp1786_su25.dataClasses.userModel
+import com.example.comp1786_su25.controllers.dataClasses.CartModel
+import com.example.comp1786_su25.controllers.dataClasses.userModel
 
 @Composable
 fun UserDetailsDialog(modifier: Modifier = Modifier, userData: userModel, onDismiss: () -> Unit, navController: NavController) {

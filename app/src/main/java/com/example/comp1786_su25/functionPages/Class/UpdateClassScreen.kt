@@ -39,11 +39,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.comp1786_su25.GymAppApplication
 import com.example.comp1786_su25.components.ClassTypeDropdown
 import com.example.comp1786_su25.components.WheelDateTimePickerDialog
 import com.example.comp1786_su25.controllers.classFirebaseRepository
-import com.example.comp1786_su25.dataClasses.classModel
-import com.google.android.play.core.integrity.v
+import com.example.comp1786_su25.controllers.dataClasses.classModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,19 +71,40 @@ fun UpdateClassScreen(
     // Load class data if classId is provided
     LaunchedEffect(key1 = classId) {
         if (classId != null) {
-            classFirebaseRepository.getClassById(classId) { classData ->
-                if (classData != null) {
-                    // Set values from the database
-                    id = classData.id ?: ""
-                    class_name = classData.class_name
-                    day_of_week = classData.day_of_week
-                    time_of_course = classData.time_of_course
-                    capacity = classData.capacity
-                    duration = classData.duration
-                    price_per_class = classData.price_per_class
-                    type_of_class = classData.type_of_class
-                    description = classData.description
-                    teacher = classData.teacher
+            // Try to load from local database first
+            val classDatabaseHelper = GymAppApplication.getInstance().classDatabaseHelper
+            val localClass = classDatabaseHelper.getClassById(classId)
+
+            if (localClass != null) {
+                // Local data found, use it
+                id = localClass.id
+                class_name = localClass.class_name
+                day_of_week = localClass.day_of_week
+                time_of_course = localClass.time_of_course
+                capacity = localClass.capacity
+                duration = localClass.duration
+                price_per_class = localClass.price_per_class
+                type_of_class = localClass.type_of_class
+                description = localClass.description
+                teacher = localClass.teacher
+                android.util.Log.d("ClassSync", "Loaded class from local database: $id")
+            } else {
+                // Fall back to Firebase if not in local database
+                classFirebaseRepository.getClassById(classId) { classData ->
+                    if (classData != null) {
+                        // Set values from Firebase
+                        id = classData.id ?: ""
+                        class_name = classData.class_name
+                        day_of_week = classData.day_of_week
+                        time_of_course = classData.time_of_course
+                        capacity = classData.capacity
+                        duration = classData.duration
+                        price_per_class = classData.price_per_class
+                        type_of_class = classData.type_of_class
+                        description = classData.description
+                        teacher = classData.teacher
+                        android.util.Log.d("ClassSync", "Loaded class from Firebase: $id")
+                    }
                 }
             }
         }
@@ -235,27 +256,40 @@ fun UpdateClassScreen(
 
             Button(
                 onClick = {
-                    if (classId != null) {
-                        // Update existing class
-                        classFirebaseRepository.updateClass(
-                            classModel(id, day_of_week, time_of_course, capacity, duration,
-                                price_per_class, type_of_class, description, teacher)
-                        )
-                        Toast.makeText(context, "Class updated successfully", Toast.LENGTH_SHORT).show()
-                    } else {
-                        // Add new class
-                        classFirebaseRepository.addClass(
-                            classModel("", day_of_week, time_of_course, capacity, duration,
-                                price_per_class, type_of_class, description, teacher)
-                        )
-                        Toast.makeText(context, "Class added successfully", Toast.LENGTH_SHORT).show()
-                    }
+                    // Prepare the updated class model
+                    val currentTime = System.currentTimeMillis().toString()
+                    val updatedClass = classModel(
+                        id = id,
+                        class_name = class_name,
+                        day_of_week = day_of_week,
+                        time_of_course = time_of_course,
+                        capacity = capacity,
+                        duration = duration,
+                        price_per_class = price_per_class,
+                        type_of_class = type_of_class,
+                        description = description,
+                        teacher = teacher,
+                        createdTime = currentTime
+                    )
+
+                    // Update in Firebase
+                    classFirebaseRepository.updateClass(updatedClass)
+
+                    // Update in local SQLite database
+                    val classDatabaseHelper = GymAppApplication.getInstance().classDatabaseHelper
+                    val rowsUpdated = classDatabaseHelper.updateClass(updatedClass)
+
+                    // Log the update result
+                    android.util.Log.d("ClassSync", "Updated class in local DB. Rows affected: $rowsUpdated")
+
+                    Toast.makeText(context, "Class updated successfully in cloud and local database", Toast.LENGTH_SHORT).show()
+
                     navController.popBackStack()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(if (classId != null) "Update Class" else "Save Class")
+                Text("Update Class")
             }
         }
     }

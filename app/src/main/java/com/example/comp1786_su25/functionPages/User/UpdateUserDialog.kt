@@ -33,8 +33,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.comp1786_su25.controllers.dataClasses.CartModel
 import com.example.comp1786_su25.controllers.userFirebaseRepository
-import com.example.comp1786_su25.dataClasses.userModel
+import com.example.comp1786_su25.controllers.dataClasses.userModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +47,7 @@ fun UpdateUserScreen(modifier: Modifier = Modifier, navController: NavController
     var uid by remember { mutableStateOf("") }
     var id by remember { mutableStateOf("") }
     var createdAt by remember { mutableStateOf("") }
-    var carts by remember { mutableStateOf(emptyMap<String, com.example.comp1786_su25.dataClasses.CartModel>()) }
+    var carts by remember { mutableStateOf(emptyMap<String, CartModel>()) }
 
     val context = LocalContext.current
 

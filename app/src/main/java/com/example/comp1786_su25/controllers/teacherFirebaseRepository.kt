@@ -1,6 +1,6 @@
 package com.example.comp1786_su25.controllers
 
-import com.example.comp1786_su25.dataClasses.teacherModel
+import com.example.comp1786_su25.controllers.dataClasses.teacherModel
 import com.google.firebase.database.FirebaseDatabase
 
 object teacherFirebaseRepository {

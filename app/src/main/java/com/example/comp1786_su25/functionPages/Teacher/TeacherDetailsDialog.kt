@@ -3,9 +3,7 @@ package com.example.comp1786_su25.functionPages.Teacher
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -29,7 +27,7 @@ import com.example.comp1786_su25.components.DetailItem
 import com.example.comp1786_su25.components.DetailSection
 import com.example.comp1786_su25.controllers.classFirebaseRepository
 import com.example.comp1786_su25.controllers.teacherFirebaseRepository
-import com.example.comp1786_su25.dataClasses.teacherModel
+import com.example.comp1786_su25.controllers.dataClasses.teacherModel
 
 @Composable
 fun TeacherDetailsDialog(

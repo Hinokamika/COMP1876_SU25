@@ -1,0 +1,126 @@
+package com.example.comp1786_su25.sqliteHelper
+
+import android.content.ContentValues
+import android.content.Context
+import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+import com.example.comp1786_su25.controllers.dataClasses.teacherModel
+import com.example.comp1786_su25.sqliteHelper.dataAttributes.teacherAttributes
+
+class TeacherDatabaseHelper(context: Context) : SQLiteOpenHelper(
+    context,
+    teacherAttributes.DATABASE_NAME,
+    null,
+    teacherAttributes.DATABASE_VERSION
+) {
+    override fun onCreate(db: SQLiteDatabase?) {
+        val createTableQuery = """
+            CREATE TABLE ${teacherAttributes.TABLE_NAME} (
+                ${teacherAttributes.TEACHER_ID} INTEGER PRIMARY KEY AUTOINCREMENT,
+                ${teacherAttributes.TEACHER_NAME} TEXT NOT NULL,
+                ${teacherAttributes.TEACHER_EMAIL} TEXT NOT NULL,
+                ${teacherAttributes.TEACHER_PHONE} TEXT,
+                ${teacherAttributes.TEACHER_SPECIALTY} TEXT,
+                ${teacherAttributes.TEACHER_CREATED_AT} TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """.trimIndent()
+        db?.execSQL(createTableQuery)
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        db?.execSQL("DROP TABLE IF EXISTS ${teacherAttributes.TABLE_NAME}")
+        onCreate(db)
+    }
+
+    fun addTeacher(teacher: teacherModel): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(teacherAttributes.TEACHER_NAME, teacher.name)
+            put(teacherAttributes.TEACHER_EMAIL, teacher.email)
+            put(teacherAttributes.TEACHER_PHONE, teacher.phone)
+            put(teacherAttributes.TEACHER_SPECIALTY, teacher.specialization)
+            put(teacherAttributes.TEACHER_CREATED_AT, teacher.createdAt)
+        }
+        val id = db.insert(teacherAttributes.TABLE_NAME, null, values)
+        db.close()
+        return id
+    }
+
+    fun getAllTeachers(): List<teacherModel> {
+        val teacherList = mutableListOf<teacherModel>()
+        val db = readableDatabase
+        val cursor: Cursor = db.rawQuery("SELECT * FROM ${teacherAttributes.TABLE_NAME}", null)
+        if (cursor.moveToFirst()) {
+            do {
+                val teacher = teacherModel(
+                    id = cursor.getInt(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_ID)).toString(),
+                    name = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_NAME)),
+                    email = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_EMAIL)),
+                    phone = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_PHONE)),
+                    specialization = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_SPECIALTY)),
+                    createdAt = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_CREATED_AT))
+                )
+                teacherList.add(teacher)
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        db.close()
+        return teacherList
+    }
+
+    fun getTeacherById(teacherId: String): teacherModel? {
+        val db = readableDatabase
+        val cursor = db.query(
+            teacherAttributes.TABLE_NAME,
+            null,
+            "${teacherAttributes.TEACHER_ID} = ?",
+            arrayOf(teacherId),
+            null, null, null
+        )
+        var teacher: teacherModel? = null
+        if (cursor.moveToFirst()) {
+            teacher = teacherModel(
+                id = cursor.getInt(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_ID)).toString(),
+                name = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_NAME)),
+                email = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_EMAIL)),
+                phone = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_PHONE)),
+                specialization = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_SPECIALTY)),
+                createdAt = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_CREATED_AT))
+            )
+        }
+        cursor.close()
+        db.close()
+        return teacher
+    }
+
+    fun updateTeacher(teacher: teacherModel): Int {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(teacherAttributes.TEACHER_NAME, teacher.name)
+            put(teacherAttributes.TEACHER_EMAIL, teacher.email)
+            put(teacherAttributes.TEACHER_PHONE, teacher.phone)
+            put(teacherAttributes.TEACHER_SPECIALTY, teacher.specialization)
+            put(teacherAttributes.TEACHER_CREATED_AT, teacher.createdAt)
+        }
+        val rows = db.update(
+            teacherAttributes.TABLE_NAME,
+            values,
+            "${teacherAttributes.TEACHER_ID} = ?",
+            arrayOf(teacher.id)
+        )
+        db.close()
+        return rows
+    }
+
+    fun deleteTeacher(teacherId: String): Int {
+        val db = writableDatabase
+        val rows = db.delete(
+            teacherAttributes.TABLE_NAME,
+            "${teacherAttributes.TEACHER_ID} = ?",
+            arrayOf(teacherId)
+        )
+        db.close()
+        return rows
+    }
+}

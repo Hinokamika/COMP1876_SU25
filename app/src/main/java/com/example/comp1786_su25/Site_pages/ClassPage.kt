@@ -42,10 +42,13 @@ import androidx.navigation.NavController
 import com.example.comp1786_su25.AuthViewModel
 import com.example.comp1786_su25.controllers.classFirebaseRepository
 import com.example.comp1786_su25.controllers.teacherFirebaseRepository
-import com.example.comp1786_su25.dataClasses.classModel
+import com.example.comp1786_su25.controllers.dataClasses.classModel
 import com.example.comp1786_su25.functionPages.Class.ClassDetailsDialog
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.example.comp1786_su25.GymAppApplication
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,28 +60,77 @@ fun ClassPage(modifier: Modifier = Modifier, navController: NavController) {
     var teacherNames by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     // State for refresh indicator
     var isRefreshing by remember { mutableStateOf(false) }
+    // State for network status message
+    var networkStatusMessage by remember { mutableStateOf("") }
+    // Get sync manager
+    val syncManager = GymAppApplication.getInstance().syncManager
+    // Context for showing toast messages
+    val context = LocalContext.current
 
     // Function to refresh data
     fun refreshData() {
         isRefreshing = true
-        classFirebaseRepository.getClasses { fetchedClasses ->
-            classes = fetchedClasses
-            // Reset teacher names map before fetching new data
-            teacherNames = emptyMap()
-            // Fetch teacher names for all unique teacher IDs in the class list
-            val uniqueTeacherIds = fetchedClasses.map { it.teacher }.toSet()
-            uniqueTeacherIds.forEach { teacherId ->
-                teacherFirebaseRepository.getTeacherById(teacherId) { teacher ->
-                    teacher?.let {
-                        teacherNames = teacherNames + (teacherId to it.name)
+
+        // Check if device is online
+        if (syncManager.isOnline()) {
+            networkStatusMessage = "Online mode: Syncing with cloud"
+
+            // First sync data between local and cloud
+            syncManager.syncAll { success ->
+                if (success) {
+                    // Then fetch all classes using the sync manager
+                    syncManager.getAllClasses { fetchedClasses ->
+                        classes = fetchedClasses
+
+                        // Reset teacher names map before fetching new data
+                        teacherNames = emptyMap()
+
+                        // Fetch teacher names for all unique teacher IDs in the class list
+                        val uniqueTeacherIds = fetchedClasses.map { it.teacher }.toSet()
+                        uniqueTeacherIds.forEach { teacherId ->
+                            teacherFirebaseRepository.getTeacherById(teacherId) { teacher ->
+                                teacher?.let {
+                                    teacherNames = teacherNames + (teacherId to it.name)
+                                }
+                            }
+                        }
+
+                        isRefreshing = false
+                        Toast.makeText(context, "Data synced successfully", Toast.LENGTH_SHORT).show()
                     }
+                } else {
+                    // If sync failed, still try to show data from local DB
+                    val localClasses = GymAppApplication.getInstance().classDatabaseHelper.getAllClasses()
+                    classes = localClasses
+                    isRefreshing = false
+                    Toast.makeText(context, "Sync failed, showing local data", Toast.LENGTH_SHORT).show()
                 }
             }
+        } else {
+            // Offline mode - use local database
+            networkStatusMessage = "Offline mode: Using local data"
+            val localClasses = GymAppApplication.getInstance().classDatabaseHelper.getAllClasses()
+            classes = localClasses
+
+            // Try to fetch teacher names from local database
+            val teacherHelper = GymAppApplication.getInstance().teacherDatabaseHelper
+            val uniqueTeacherIds = localClasses.map { it.teacher }.toSet()
+            var localTeacherNames = emptyMap<String, String>()
+
+            uniqueTeacherIds.forEach { teacherId ->
+                val teacher = teacherHelper.getTeacherById(teacherId)
+                teacher?.let {
+                    localTeacherNames = localTeacherNames + (teacherId to it.name)
+                }
+            }
+
+            teacherNames = localTeacherNames
             isRefreshing = false
+            Toast.makeText(context, "Offline mode: Using local data", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Fetch classes from Firebase when the composable is first displayed
+    // Fetch classes when the composable is first displayed
     LaunchedEffect(key1 = true) {
         refreshData()
     }

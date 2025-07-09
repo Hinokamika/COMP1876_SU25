@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.comp1786_su25.components.ClassTypeDropdown
 import com.example.comp1786_su25.controllers.teacherFirebaseRepository
-import com.example.comp1786_su25.dataClasses.teacherModel
+import com.example.comp1786_su25.controllers.dataClasses.teacherModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +42,7 @@ fun AddTeacherScreen(modifier: Modifier = Modifier, navController: NavController
     var phone by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
     var specialization by remember { mutableStateOf("") }
+    var createdTime by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     val maxNumbers = 99
@@ -112,6 +113,11 @@ fun AddTeacherScreen(modifier: Modifier = Modifier, navController: NavController
             Spacer(Modifier.height(24.dp))
             Button(
                 onClick = {
+                    var currentTime = System.currentTimeMillis().toString()
+                    if (name.isEmpty() || email.isEmpty() || phone.isEmpty() || age.isEmpty() || specialization.isEmpty()) {
+                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
                     teacherFirebaseRepository.addTeacher(
                         teacherModel(
                             id = "",
@@ -119,7 +125,8 @@ fun AddTeacherScreen(modifier: Modifier = Modifier, navController: NavController
                             email = email,
                             phone = phone,
                             age = age,
-                            specialization = specialization
+                            specialization = specialization,
+                            createdAt = currentTime
                         )
                     )
                     Toast.makeText(context, "Teacher added", Toast.LENGTH_SHORT).show()

@@ -1,4 +1,4 @@
-package com.example.comp1786_su25.dataClasses
+package com.example.comp1786_su25.controllers.dataClasses
 
 data class userModel(
     val id: String = "",
