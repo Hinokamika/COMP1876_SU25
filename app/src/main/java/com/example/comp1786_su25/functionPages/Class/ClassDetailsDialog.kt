@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -22,6 +23,7 @@ import androidx.navigation.NavController
 import com.example.comp1786_su25.components.DetailItem
 import com.example.comp1786_su25.components.DetailSection
 import com.example.comp1786_su25.controllers.classFirebaseRepository
+import com.example.comp1786_su25.sqliteHelper.ClassDatabaseHelper
 
 @Composable
 fun ClassDetailsDialog(
@@ -30,6 +32,10 @@ fun ClassDetailsDialog(
     navController: NavController,
     teacherName: String? = null
 ) {
+    // Get the context once at the Composable function level
+    val context = LocalContext.current
+    val dbHelper = ClassDatabaseHelper(context)
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -110,8 +116,12 @@ fun ClassDetailsDialog(
 
                 Button(onClick = {
                     classData.id?.let { id ->
-                        // Call the delete function from the repository
+                        // Delete from Firebase
                         classFirebaseRepository.deleteClass(id)
+
+                        // Delete from local SQLite database
+                        dbHelper.deleteClassByFirebaseId(id)
+
                         // Dismiss the dialog
                         onDismiss()
                         // Navigate back to refresh the class list

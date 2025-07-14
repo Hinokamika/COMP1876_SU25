@@ -1,15 +1,22 @@
 package com.example.comp1786_su25.controllers
 
 import com.example.comp1786_su25.controllers.dataClasses.teacherModel
+import com.google.android.gms.tasks.Task
+import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.FirebaseDatabase
 
 object teacherFirebaseRepository {
 
     private val db = FirebaseDatabase.getInstance().getReference("teachers")
 
-    fun addTeacher(teacher: teacherModel) {
-        val teacherId = db.push().key ?: return
+    fun addTeacher(teacher: teacherModel): String {
+        val teacherId = db.push().key ?: ""
         db.child(teacherId).setValue(teacher.copy(id = teacherId))
+        return teacherId
+    }
+
+    fun getTeachersTask(): Task<DataSnapshot> {
+        return teacherFirebaseRepository.db.get()
     }
 
     fun getTeachers(callback: (List<teacherModel>) -> Unit) {

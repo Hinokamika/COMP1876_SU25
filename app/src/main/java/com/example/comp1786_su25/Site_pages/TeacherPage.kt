@@ -1,5 +1,6 @@
 package com.example.comp1786_su25.Site_pages
 
+import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -38,14 +39,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.comp1786_su25.GymAppApplication
 import com.example.comp1786_su25.controllers.teacherFirebaseRepository
 import com.example.comp1786_su25.controllers.dataClasses.teacherModel
 import com.example.comp1786_su25.functionPages.Teacher.TeacherDetailsDialog
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import kotlin.collections.plus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,13 +60,45 @@ fun TeacherPage(modifier: Modifier, navController: NavController) {
     var searchQuery by remember { mutableStateOf("") }
     // State for refresh indicator
     var isRefreshing by remember { mutableStateOf(false) }
+    var networkStatusMessage by remember { mutableStateOf("") }
+
+    val syncManager = GymAppApplication.getInstance().syncManager
+    val context = LocalContext.current
 
     // Function to refresh data
     fun refreshData() {
         isRefreshing = true
-        teacherFirebaseRepository.getTeachers { fetchedTeachers ->
-            teachers = fetchedTeachers
+
+        // Check if device is online
+        if (syncManager.isOnline()) {
+            networkStatusMessage = "Online mode: Syncing with cloud"
+
+            // First sync data between local and cloud
+            syncManager.syncAll { success ->
+                if (success) {
+                    // Then fetch all classes using the sync manager
+                    syncManager.getAllTeachers { fetchedTeachers ->
+                        teachers = fetchedTeachers
+
+                        isRefreshing = false
+                        Toast.makeText(context, "Data synced successfully", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    // If sync failed, still try to show data from local DB
+                    val localTeachers = GymAppApplication.getInstance().teacherDatabaseHelper.getAllTeachers()
+                    teachers = localTeachers
+                    isRefreshing = false
+                    Toast.makeText(context, "Sync failed, showing local data", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            // Offline mode - use local database
+            networkStatusMessage = "Offline mode: Using local data"
+            val localTeachers = GymAppApplication.getInstance().teacherDatabaseHelper.getAllTeachers()
+            teachers = localTeachers
+
             isRefreshing = false
+            Toast.makeText(context, "Offline mode: Using local data", Toast.LENGTH_SHORT).show()
         }
     }
 

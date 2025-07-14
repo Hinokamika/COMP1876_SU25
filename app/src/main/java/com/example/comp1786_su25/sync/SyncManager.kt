@@ -48,7 +48,7 @@ class SyncManager(private val context: Context) {
             try {
                 syncClasses()
                 syncTeachers()
-                syncUsers()
+//                syncUsers()
                 withContext(Dispatchers.Main) {
                     onComplete(true)
                 }
@@ -133,11 +133,54 @@ class SyncManager(private val context: Context) {
             return
         }
 
-        // Similar implementation to syncClasses for teachers
-        try {
-            // Get all teachers from Firebase and local DB
-            // Compare and sync as needed
-            Log.d(TAG, "Teacher sync completed")
+            val firebaseTeacher = mutableListOf<teacherModel>()
+            try {
+                // Using coroutines to wait for Firebase data
+                val teachersTask = teacherFirebaseRepository.getTeachersTask()
+                val snapshot = teachersTask.await()
+                snapshot.children.forEach { dataSnapshot ->
+                    val teacherData = dataSnapshot.getValue(teacherModel::class.java)
+                    if (teacherData != null) {
+                        // Set the ID from the Firebase key
+                        teacherData.id = dataSnapshot.key ?: ""
+                        firebaseTeacher.add(teacherData)
+                    }
+                }
+
+                // Get all classes from local database
+                val localClasses = teacherDatabaseHelper.getAllTeachers()
+
+                // Find classes that exist in Firebase but not in local DB (need to download)
+                val teachersToDownload = firebaseTeacher.filter { firebaseClass ->
+                    localClasses.none { it.id == firebaseClass.id }
+                }
+
+                // Find classes that exist in local DB but not in Firebase (need to upload)
+                val teachersToUpload = localClasses.filter { localClass ->
+                    !localClass.synced && firebaseTeacher.none { it.id == localClass.id }
+                }
+
+                // Download missing classes to local DB
+                teachersToDownload.forEach { teacherModel ->
+                    val localId = teacherDatabaseHelper.addTeacher(teacherModel)
+                    teacherModel.localId = localId
+                    teacherModel.synced = true
+                    teacherDatabaseHelper.updateTeacher(teacherModel)
+                    Log.d(TAG, "Downloaded class to local DB: ${teacherModel.id}, localId: $localId")
+                }
+
+                // Upload missing classes to Firebase
+                teachersToUpload.forEach { teacherModel ->
+                    val firebaseId = teacherFirebaseRepository.addTeacher(teacherModel)
+                    teacherModel.id = firebaseId
+                    teacherModel.synced = true
+                    teacherDatabaseHelper.updateTeacher(teacherModel)
+                    Log.d(TAG, "Uploaded class to Firebase: ${teacherModel.id}")
+                }
+
+                Log.d(TAG, "Class sync completed. Downloaded: ${teachersToDownload.size}, Uploaded: ${teachersToUpload.size}")
+
+                Log.d(TAG, "Teacher sync completed")
         } catch (e: Exception) {
             Log.e(TAG, "Error syncing teachers: ${e.message}")
             throw e
@@ -161,6 +204,59 @@ class SyncManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error syncing users: ${e.message}")
             throw e
+        }
+    }
+
+    fun getAllTeachers(callback: (List<teacherModel>) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (isOnline()) {
+                    // Online: Get from Firebase and update local
+                    val firebaseTeachers = mutableListOf<teacherModel>()
+                    val teachersTask = teacherFirebaseRepository.getTeachersTask()
+                    val snapshot = teachersTask.await()
+
+                    snapshot.children.forEach { dataSnapshot ->
+                        val teacherData = dataSnapshot.getValue(teacherModel::class.java)
+                        if (teacherData != null) {
+                            teacherData.id = dataSnapshot.key ?: ""
+                            firebaseTeachers.add(teacherData)
+
+                            // Update or insert into local database
+                            val localTeacher = teacherDatabaseHelper.getTeacherById(teacherData.id)
+                            if (localTeacher == null) {
+                                // New class, add to local DB
+                                val localId = teacherDatabaseHelper.addTeacher(teacherData)
+                                teacherData.localId = localId
+                                teacherData.synced = true
+                                teacherDatabaseHelper.updateTeacher(teacherData)
+                            } else {
+                                // Update existing class in local DB
+                                teacherData.localId = localTeacher.localId
+                                teacherData.synced = true
+                                teacherDatabaseHelper.updateTeacher(teacherData)
+                            }
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        callback(firebaseTeachers)
+                    }
+                } else {
+                    // Offline: Get from local database
+                    val localTeachers = teacherDatabaseHelper.getAllTeachers()
+                    withContext(Dispatchers.Main) {
+                        callback(localTeachers)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting classes: ${e.message}")
+                // Fallback to local database on error
+                val localTeachers = teacherDatabaseHelper.getAllTeachers()
+                withContext(Dispatchers.Main) {
+                    callback(localTeachers)
+                }
+            }
         }
     }
 

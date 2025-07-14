@@ -164,7 +164,6 @@ class ClassDatabaseHelper(context: Context) : SQLiteOpenHelper(
             } while (cursor.moveToNext())
         }
         cursor.close()
-        db.close()
         return classList
     }
 
@@ -200,7 +199,6 @@ class ClassDatabaseHelper(context: Context) : SQLiteOpenHelper(
             )
         }
         cursor.close()
-        db.close()
         return classItem
     }
 
@@ -235,7 +233,6 @@ class ClassDatabaseHelper(context: Context) : SQLiteOpenHelper(
             )
         }
         cursor.close()
-        // Don't close the database here - it will be closed when the helper is closed
         return classItem
     }
 
@@ -281,9 +278,6 @@ class ClassDatabaseHelper(context: Context) : SQLiteOpenHelper(
             db.close()
             return rows
         }
-
-        // If neither ID is available, return 0 (no rows updated)
-        db.close()
         return 0
     }
 
@@ -293,6 +287,16 @@ class ClassDatabaseHelper(context: Context) : SQLiteOpenHelper(
             classAttributes.TABLE_NAME,
             "${classAttributes.CLASS_ID} = ?",
             arrayOf(classId)
+        )
+        return rows
+    }
+
+    fun deleteClassByFirebaseId(firebaseId: String): Int {
+        val db = writableDatabase
+        val rows = db.delete(
+            classAttributes.TABLE_NAME,
+            "${classAttributes.FIREBASE_ID} = ?",
+            arrayOf(firebaseId)
         )
         db.close()
         return rows

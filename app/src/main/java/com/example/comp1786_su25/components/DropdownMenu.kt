@@ -24,7 +24,9 @@ fun CustomDropdownMenu(
     selectedOption: String,
     onOptionSelected: (String) -> Unit,
     label: String = "Select Option",
-    placeholder: String = ""
+    placeholder: String = "",
+    isError: Boolean = false,
+    errorMessage: String? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -44,6 +46,7 @@ fun CustomDropdownMenu(
             placeholder = { Text(placeholder) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            isError = isError,
         )
 
         ExposedDropdownMenu(
@@ -68,7 +71,9 @@ fun CustomDropdownMenu(
 fun ClassTypeDropdown(
     selectedType: String,
     onTypeSelected: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    errorMessage: String? = null
 ) {
     val classTypeOptions = listOf(
         "Flow Yoga",
@@ -82,7 +87,9 @@ fun ClassTypeDropdown(
         selectedOption = selectedType,
         onOptionSelected = onTypeSelected,
         label = "Class Type",
-        placeholder = "Select class type"
+        placeholder = "Select class type",
+        isError = isError,
+        errorMessage = errorMessage
     )
 }
 

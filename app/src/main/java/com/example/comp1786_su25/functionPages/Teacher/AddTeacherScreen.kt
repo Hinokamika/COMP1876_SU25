@@ -30,7 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.comp1786_su25.GymAppApplication
 import com.example.comp1786_su25.components.ClassTypeDropdown
+import com.example.comp1786_su25.controllers.classFirebaseRepository
 import com.example.comp1786_su25.controllers.teacherFirebaseRepository
 import com.example.comp1786_su25.controllers.dataClasses.teacherModel
 
@@ -42,10 +44,93 @@ fun AddTeacherScreen(modifier: Modifier = Modifier, navController: NavController
     var phone by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
     var specialization by remember { mutableStateOf("") }
-    var createdTime by remember { mutableStateOf("") }
+
+    // Error states for validation
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var phoneError by remember { mutableStateOf<String?>(null) }
+    var ageError by remember { mutableStateOf<String?>(null) }
+    var specializationError by remember { mutableStateOf<String?>(null) }
+
     val context = LocalContext.current
 
-    val maxNumbers = 99
+    // Validation functions
+    fun validateName(): Boolean {
+        return if (name.trim().isEmpty()) {
+            nameError = "Name cannot be empty"
+            false
+        } else {
+            nameError = null
+            true
+        }
+    }
+
+    fun validateEmail(): Boolean {
+        return if (email.trim().isEmpty()) {
+            emailError = "Email cannot be empty"
+            false
+        } else if (!email.trim().endsWith("@gmail.com")) {
+            emailError = "Email must end with @gmail.com"
+            false
+        } else {
+            emailError = null
+            true
+        }
+    }
+
+    fun validatePhone(): Boolean {
+        return if (phone.trim().isEmpty()) {
+            phoneError = "Phone cannot be empty"
+            false
+        } else if (phone.trim().length < 10) {
+            phoneError = "Phone must have at least 10 numbers"
+            false
+        } else {
+            phoneError = null
+            true
+        }
+    }
+
+    fun validateAge(): Boolean {
+        return if (age.trim().isEmpty()) {
+            ageError = "Age cannot be empty"
+            false
+        } else {
+            try {
+                val ageValue = age.trim().toInt()
+                if (ageValue <= 0) {
+                    ageError = "Age must be greater than 0"
+                    false
+                } else {
+                    ageError = null
+                    true
+                }
+            } catch (e: NumberFormatException) {
+                ageError = "Age must be a valid number"
+                false
+            }
+        }
+    }
+
+    fun validateSpecialization(): Boolean {
+        return if (specialization.trim().isEmpty()) {
+            specializationError = "Specialization cannot be empty"
+            false
+        } else {
+            specializationError = null
+            true
+        }
+    }
+
+    fun validateForm(): Boolean {
+        val nameValid = validateName()
+        val emailValid = validateEmail()
+        val phoneValid = validatePhone()
+        val ageValid = validateAge()
+        val specializationValid = validateSpecialization()
+
+        return nameValid && emailValid && phoneValid && ageValid && specializationValid
+    }
 
     Scaffold(
         topBar = {
@@ -71,66 +156,110 @@ fun AddTeacherScreen(modifier: Modifier = Modifier, navController: NavController
         ) {
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = {
+                    name = it
+                    if (nameError != null) validateName()
+                },
                 label = { Text("Name") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                isError = nameError != null,
+                supportingText = { nameError?.let { Text(it) } }
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = {
+                    email = it
+                    if (emailError != null) validateEmail()
+                },
                 label = { Text("Email") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                isError = emailError != null,
+                supportingText = { emailError?.let { Text(it) } }
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = phone,
                 onValueChange = { newValue ->
-                    if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.length <= 10)) {
+                    if (newValue.isEmpty() || (newValue.all { it.isDigit() })) {
                         phone = newValue
+                        if (phoneError != null) validatePhone()
                     }
                 },
                 label = { Text("Phone") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                isError = phoneError != null,
+                supportingText = { phoneError?.let { Text(it) } }
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = age,
-                onValueChange = {if (it.toInt() <= maxNumbers) age = it},
+                onValueChange = { newValue ->
+                    if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                        age = newValue
+                        if (ageError != null) validateAge()
+                    }
+                },
                 label = { Text("Age") },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                isError = ageError != null,
+                supportingText = { ageError?.let { Text(it) } }
             )
             Spacer(Modifier.height(12.dp))
             ClassTypeDropdown(
                 selectedType = specialization,
-                onTypeSelected = { specialization = it },
-                modifier = Modifier.fillMaxWidth()
+                onTypeSelected = {
+                    specialization = it
+                    if (specializationError != null) validateSpecialization()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                isError = specializationError != null,
+                errorMessage = specializationError
             )
             Spacer(Modifier.height(24.dp))
             Button(
                 onClick = {
-                    var currentTime = System.currentTimeMillis().toString()
-                    if (name.isEmpty() || email.isEmpty() || phone.isEmpty() || age.isEmpty() || specialization.isEmpty()) {
-                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    teacherFirebaseRepository.addTeacher(
-                        teacherModel(
-                            id = "",
-                            name = name,
-                            email = email,
-                            phone = phone,
-                            age = age,
-                            specialization = specialization,
-                            createdAt = currentTime
+                    if (validateForm()) {
+                        val createdAt = System.currentTimeMillis().toString()
+                        val newTeacher = teacherModel(
+                            "",
+                            name,
+                            email,
+                            phone,
+                            age,
+                            specialization,
+                            createdAt
                         )
-                    )
-                    Toast.makeText(context, "Teacher added", Toast.LENGTH_SHORT).show()
-                    navController.popBackStack()
+
+                        val firebaseId = teacherFirebaseRepository.addTeacher(newTeacher)
+
+                        // Save to local SQLite database
+                        val teacherDatabaseHelper = GymAppApplication.getInstance().teacherDatabaseHelper
+                        val localId = teacherDatabaseHelper.addTeacher(newTeacher)
+
+                        // Approach 1: Update the model with the local ID
+                        newTeacher.localId = localId
+
+                        // Approach 2: Sync with Firebase (mark as synced)
+                        newTeacher.synced = true
+
+                        // Update the class with the localId
+                        if (localId > 0) {
+                            // Update the model in the database with the synced status
+                            teacherDatabaseHelper.updateTeacher(newTeacher)
+
+                            // Approach 3: Log for debugging
+                            android.util.Log.d("ClassSync", "Class saved with local ID: $localId and Firebase ID: $firebaseId")
+                        }
+                        Toast.makeText(context, "Teacher added", Toast.LENGTH_SHORT).show()
+                        navController.popBackStack() // Navigate back after saving
+                    } else {
+                        Toast.makeText(context, "Please fix the errors in the form", Toast.LENGTH_SHORT).show()
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
