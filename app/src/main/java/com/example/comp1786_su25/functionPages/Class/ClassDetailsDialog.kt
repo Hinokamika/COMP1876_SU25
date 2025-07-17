@@ -118,10 +118,8 @@ fun ClassDetailsDialog(
                     classData.id?.let { id ->
                         // Delete from Firebase
                         classFirebaseRepository.deleteClass(id)
-
                         // Delete from local SQLite database
                         dbHelper.deleteClassByFirebaseId(id)
-
                         // Dismiss the dialog
                         onDismiss()
                         // Navigate back to refresh the class list
