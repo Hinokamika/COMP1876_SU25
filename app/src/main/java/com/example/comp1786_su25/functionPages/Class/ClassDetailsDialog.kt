@@ -11,6 +11,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,6 +28,7 @@ import androidx.navigation.NavController
 import com.example.comp1786_su25.components.DetailItem
 import com.example.comp1786_su25.components.DetailSection
 import com.example.comp1786_su25.controllers.classFirebaseRepository
+import com.example.comp1786_su25.controllers.teacherFirebaseRepository
 import com.example.comp1786_su25.sqliteHelper.ClassDatabaseHelper
 
 @Composable
@@ -35,6 +41,25 @@ fun ClassDetailsDialog(
     // Get the context once at the Composable function level
     val context = LocalContext.current
     val dbHelper = ClassDatabaseHelper(context)
+
+    // Use remember+mutableStateOf to properly handle state changes in Compose
+    var teacherDisplayName by remember { mutableStateOf(teacherName ?: "Loading") }
+
+    // Fetch teacher data when the component is first composed or when teacher ID changes
+    LaunchedEffect(classData.teacher) {
+        // Only fetch if we have a teacher ID
+        if (classData.teacher.isNotEmpty()) {
+            teacherFirebaseRepository.getTeacherById(classData.teacher) { teacher ->
+                if (teacher != null) {
+                    teacherDisplayName = teacher.name
+                } else {
+                    teacherDisplayName = "Unknown Teacher"
+                }
+            }
+        } else {
+            teacherDisplayName = "No Teacher Assigned"
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -94,7 +119,7 @@ fun ClassDetailsDialog(
                 DetailSection(title = "Instructor", content = {
                     DetailItem(
                         label = "Teacher",
-                        value = teacherName ?: classData.teacher,
+                        value = teacherDisplayName,
                         modifier = Modifier.fillMaxWidth()
                     )
                 })

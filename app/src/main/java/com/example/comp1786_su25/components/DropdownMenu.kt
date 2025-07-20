@@ -14,7 +14,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.example.comp1786_su25.GymAppApplication
 import com.example.comp1786_su25.controllers.teacherFirebaseRepository
+import com.example.comp1786_su25.sqliteHelper.TeacherDatabaseHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,16 +98,19 @@ fun ClassTypeDropdown(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeacherDropdown(
+    loadingFunction: () -> List<Pair<String, String>> = { emptyList() },
     selectedType: String,
     onTypeSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var teacherOptions by remember { mutableStateOf(listOf<Pair<String, String>>()) } // Pair<id, name>
+    var teacherOptions by remember { mutableStateOf(emptyList<Pair<String, String>>()) }
 
-    LaunchedEffect(Unit) {
-        teacherFirebaseRepository.getTeachers { teachers ->
-            teacherOptions = teachers.map { it.id to it.name }
-        }
+    // Force recomposition when this function is called
+    val teachers = loadingFunction()
+
+    // Update the state with the new teachers
+    LaunchedEffect(teachers) {
+        teacherOptions = teachers
     }
 
     var expanded by remember { mutableStateOf(false) }

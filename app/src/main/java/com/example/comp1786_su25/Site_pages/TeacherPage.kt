@@ -290,7 +290,7 @@ fun TeacherCard(teacherData: teacherModel, navController: NavController) {
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Day",
+                        text = "Class name",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -303,7 +303,7 @@ fun TeacherCard(teacherData: teacherModel, navController: NavController) {
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Time",
+                        text = "Age",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -323,7 +323,7 @@ fun TeacherCard(teacherData: teacherModel, navController: NavController) {
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Duration",
+                        text = "Email",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -336,7 +336,7 @@ fun TeacherCard(teacherData: teacherModel, navController: NavController) {
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Price",
+                        text = "Phone",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -354,7 +354,7 @@ fun TeacherCard(teacherData: teacherModel, navController: NavController) {
                     .padding(top = 12.dp)
             ) {
                 Text(
-                    text = "Teacher",
+                    text = "Specialization",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )

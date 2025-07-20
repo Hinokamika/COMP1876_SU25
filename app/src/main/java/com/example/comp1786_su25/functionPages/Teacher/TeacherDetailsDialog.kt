@@ -51,10 +51,6 @@ fun TeacherDetailsDialog(
         println("DEBUG: Looking for classes with teacherId: $teacherId")
 
         classFirebaseRepository.getClassesByTeacherId(teacherId) { classes ->
-            println("DEBUG: Found ${classes.size} classes for teacher")
-            if (classes.isNotEmpty()) {
-                println("DEBUG: First class: ${classes[0].class_name}, teacher: ${classes[0].teacher}")
-            }
             teacherClasses = classes.map { it.class_name to it.type_of_class }
         }
     }

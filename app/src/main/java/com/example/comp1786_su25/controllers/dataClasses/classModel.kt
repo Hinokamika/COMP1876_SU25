@@ -10,8 +10,14 @@ data class classModel(
     val price_per_class: String = "",
     val type_of_class: String = "",
     val description: String = "",
-    val teacher: String = "",
     val createdTime: String = "",
     var localId: Long = -1, // Added local SQLite database ID
-    var synced: Boolean = false // Flag to track if item is synced with Firebase
+    var synced: Boolean = false, // Flag to track if item is synced with Firebase
+    val classes: Map<String, classDetailsModel> = emptyMap()
+)
+
+data class classDetailsModel(
+    var id : String = "",
+    val date : String = "",
+    val teacher: String = "",
 )

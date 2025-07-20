@@ -77,6 +77,39 @@ class TeacherDatabaseHelper(context: Context) : SQLiteOpenHelper(
         return id
     }
 
+    fun getAllTeachersBySpecialization(specialization: String): List<teacherModel> {
+        val teacherList = mutableListOf<teacherModel>()
+        val db = readableDatabase
+        val cursor: Cursor = db.query(
+            teacherAttributes.TABLE_NAME,
+            null,
+            "${teacherAttributes.TEACHER_SPECIALTY} = ?",
+            arrayOf(specialization),
+            null, null, null
+        )
+        if (cursor.moveToFirst()) {
+            do {
+                val localId = cursor.getInt(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_ID))
+                val firebaseId = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.FIREBASE_ID))
+                val synced = cursor.getInt(cursor.getColumnIndexOrThrow(teacherAttributes.SYNCED)) == 1
+
+                val teacher = teacherModel(
+                    id = firebaseId ?: "",
+                    name = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_NAME)),
+                    email = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_EMAIL)),
+                    phone = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_PHONE)),
+                    specialization = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_SPECIALTY)),
+                    createdAt = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_CREATED_AT)),
+                    localId = localId.toLong(),
+                    synced = synced
+                )
+                teacherList.add(teacher)
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return teacherList
+    }
+
     fun getAllTeachers(): List<teacherModel> {
         val teacherList = mutableListOf<teacherModel>()
         val db = readableDatabase
@@ -204,5 +237,29 @@ class TeacherDatabaseHelper(context: Context) : SQLiteOpenHelper(
             arrayOf(teacherId)
         )
         return rows
+    }
+
+    fun getTeacherIdAndNameBySpecialization(specialization: String): List<Pair<String, String>> {
+        val teacherList = mutableListOf<Pair<String, String>>()
+        val db = readableDatabase
+        val columns = arrayOf(teacherAttributes.TEACHER_ID, teacherAttributes.TEACHER_NAME)
+
+        val cursor: Cursor = db.query(
+            teacherAttributes.TABLE_NAME,
+            columns,
+            "${teacherAttributes.TEACHER_SPECIALTY} = ?",
+            arrayOf(specialization),
+            null, null, null
+        )
+
+        if (cursor.moveToFirst()) {
+            do {
+                val id = cursor.getInt(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_ID)).toString()
+                val name = cursor.getString(cursor.getColumnIndexOrThrow(teacherAttributes.TEACHER_NAME))
+                teacherList.add(Pair(id, name))
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return teacherList
     }
 }

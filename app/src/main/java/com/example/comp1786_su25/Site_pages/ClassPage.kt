@@ -1,8 +1,15 @@
 package com.example.comp1786_su25.Site_pages
 
+import android.R
+import android.widget.Toast
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,10 +18,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -35,20 +44,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.comp1786_su25.AuthViewModel
-import com.example.comp1786_su25.controllers.classFirebaseRepository
-import com.example.comp1786_su25.controllers.teacherFirebaseRepository
+import com.example.comp1786_su25.GymAppApplication
+import com.example.comp1786_su25.controllers.dataClasses.classDetailsModel
 import com.example.comp1786_su25.controllers.dataClasses.classModel
 import com.example.comp1786_su25.functionPages.Class.ClassDetailsDialog
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
-import com.example.comp1786_su25.GymAppApplication
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,15 +97,15 @@ fun ClassPage(modifier: Modifier = Modifier, navController: NavController) {
                         // Reset teacher names map before fetching new data
                         teacherNames = emptyMap()
 
-                        // Fetch teacher names for all unique teacher IDs in the class list
-                        val uniqueTeacherIds = fetchedClasses.map { it.teacher }.toSet()
-                        uniqueTeacherIds.forEach { teacherId ->
-                            teacherFirebaseRepository.getTeacherById(teacherId) { teacher ->
-                                teacher?.let {
-                                    teacherNames = teacherNames + (teacherId to it.name)
-                                }
-                            }
-                        }
+//                        // Fetch teacher names for all unique teacher IDs in the class list
+//                        val uniqueTeacherIds = fetchedClasses.map { it.teacher }.toSet()
+//                        uniqueTeacherIds.forEach { teacherId ->
+//                            teacherFirebaseRepository.getTeacherById(teacherId) { teacher ->
+//                                teacher?.let {
+//                                    teacherNames = teacherNames + (teacherId to it.name)
+//                                }
+//                            }
+//                        }
 
                         isRefreshing = false
                         Toast.makeText(context, "Data synced successfully", Toast.LENGTH_SHORT).show()
@@ -114,15 +126,15 @@ fun ClassPage(modifier: Modifier = Modifier, navController: NavController) {
 
             // Try to fetch teacher names from local database
             val teacherHelper = GymAppApplication.getInstance().teacherDatabaseHelper
-            val uniqueTeacherIds = localClasses.map { it.teacher }.toSet()
+//            val uniqueTeacherIds = localClasses.map { it.teacher }.toSet()
             var localTeacherNames = emptyMap<String, String>()
 
-            uniqueTeacherIds.forEach { teacherId ->
-                val teacher = teacherHelper.getTeacherById(teacherId)
-                teacher?.let {
-                    localTeacherNames = localTeacherNames + (teacherId to it.name)
-                }
-            }
+//            uniqueTeacherIds.forEach { teacherId ->
+//                val teacher = teacherHelper.getTeacherById(teacherId)
+//                teacher?.let {
+//                    localTeacherNames = localTeacherNames + (teacherId to it.name)
+//                }
+//            }
 
             teacherNames = localTeacherNames
             isRefreshing = false
@@ -236,7 +248,7 @@ fun ClassPage(modifier: Modifier = Modifier, navController: NavController) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 32.dp),
-                            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
                                 text = if (classes.isEmpty())
@@ -264,7 +276,7 @@ fun ClassPage(modifier: Modifier = Modifier, navController: NavController) {
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(filteredClasses) { classData ->
-                                ClassCard(classData = classData, navController = navController, teacherNames = teacherNames)
+                                CourseCard(classData = classData, navController = navController)
                             }
                         }
                     }
@@ -275,7 +287,173 @@ fun ClassPage(modifier: Modifier = Modifier, navController: NavController) {
 }
 
 @Composable
-fun ClassCard(classData: classModel, navController: NavController, teacherNames: Map<String, String>) {
+fun CourseCard(classData: classModel, navController: NavController) {
+    var expandedState by remember { mutableStateOf(false) }
+    val rotationState by animateFloatAsState(
+        targetValue = if (expandedState) 180f else 0f
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(
+                animationSpec = tween(
+                    durationMillis = 300,
+                    easing = LinearOutSlowInEasing
+                )
+            )
+            .clickable {
+                expandedState = !expandedState
+            },
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .background(color = Color.White),
+            shape = RoundedCornerShape(12.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = classData.class_name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Day",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Text(
+                            text = classData.day_of_week,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Time",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Text(
+                            text = classData.time_of_course + " hrs",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                if (expandedState) {
+                    // Show additional details when expanded
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Duration",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                            Text(
+                                text = classData.duration + " students",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Price",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                            Text(
+                                text = "$" + classData.price_per_class,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Type of Class",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Text(
+                            text = classData.type_of_class,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+        }
+        Column (modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp)) {
+            Row (
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Show Classes",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .weight(1f)
+                )
+                IconButton(
+                    modifier = Modifier
+                        .weight(1f)
+                        .alpha(ContentAlpha.medium)
+                        .rotate(rotationState),
+                    onClick = { expandedState = !expandedState },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Expand/Collapse",
+                    )
+                }
+            }
+            if (expandedState){
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(courseClasses) { classData ->
+                        ClassCard(classData = classData, navController = navController)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ClassCard(courseData: classDetailsModel, navController: NavController, teacherNames: Map<String, String>) {
     // Add state to control dialog visibility
     var showDetailsDialog by remember { mutableStateOf(false) }
 
@@ -285,7 +463,7 @@ fun ClassCard(classData: classModel, navController: NavController, teacherNames:
             classData = classData,
             onDismiss = { showDetailsDialog = false },
             navController = navController,
-            teacherName = teacherNames[classData.teacher]
+//            teacherName = teacherNames[classData.teacher]
         )
     }
 
@@ -339,7 +517,7 @@ fun ClassCard(classData: classModel, navController: NavController, teacherNames:
                         color = MaterialTheme.colorScheme.secondary
                     )
                     Text(
-                        text = classData.time_of_course,
+                        text = classData.time_of_course + " hrs",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )
@@ -359,7 +537,7 @@ fun ClassCard(classData: classModel, navController: NavController, teacherNames:
                         color = MaterialTheme.colorScheme.secondary
                     )
                     Text(
-                        text = classData.duration,
+                        text = classData.duration + " students",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )
@@ -372,7 +550,7 @@ fun ClassCard(classData: classModel, navController: NavController, teacherNames:
                         color = MaterialTheme.colorScheme.secondary
                     )
                     Text(
-                        text = classData.price_per_class,
+                        text = "$" + classData.price_per_class,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )
@@ -392,7 +570,8 @@ fun ClassCard(classData: classModel, navController: NavController, teacherNames:
                         color = MaterialTheme.colorScheme.secondary
                     )
                     Text(
-                        text = teacherNames[classData.teacher] ?: "Unknown Teacher",
+//                        text = teacherNames[classData.teacher] ?: "Unknown Teacher",
+                        text = "Unknown Teacher",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium
                     )

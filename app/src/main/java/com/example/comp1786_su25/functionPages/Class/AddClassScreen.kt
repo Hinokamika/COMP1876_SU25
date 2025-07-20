@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,8 +58,13 @@ fun AddClassScreen(modifier: Modifier = Modifier, navController: NavController) 
     var type_of_class by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var teacher by remember { mutableStateOf("") }
-    var createdTime by remember { mutableStateOf("") }
     var context = LocalContext.current
+
+    // This will trigger a reload of teachers when class type changes
+    LaunchedEffect(type_of_class) {
+        // When class type changes, reset the selected teacher
+        teacher = ""
+    }
 
     // State for date picker
     var showDatePicker by remember { mutableStateOf(false) }
@@ -177,7 +183,15 @@ fun AddClassScreen(modifier: Modifier = Modifier, navController: NavController) 
             TeacherDropdown(
                 selectedType = teacher,
                 onTypeSelected = { teacher = it },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                loadingFunction = {
+                    if (type_of_class.isNotEmpty()) {
+                        val teachers = GymAppApplication.getInstance().teacherDatabaseHelper.getTeacherIdAndNameBySpecialization(type_of_class)
+                        teachers
+                    } else {
+                        emptyList()
+                    }
+                }
             )
 
             Spacer(Modifier.height(12.dp))
@@ -257,3 +271,4 @@ fun AddClassScreen(modifier: Modifier = Modifier, navController: NavController) 
         }
     }
 }
+
