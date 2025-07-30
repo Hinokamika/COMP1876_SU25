@@ -39,8 +39,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.comp1786_su25.GymAppApplication
 import com.example.comp1786_su25.components.ClassTypeDropdown
+import com.example.comp1786_su25.components.DateListDropdown
 import com.example.comp1786_su25.components.TeacherDropdown
 import com.example.comp1786_su25.components.WheelDateTimePickerDialog
 import com.example.comp1786_su25.controllers.classFirebaseRepository
@@ -66,26 +66,26 @@ fun AddClassScreen(modifier: Modifier = Modifier, navController: NavController) 
         teacher = ""
     }
 
-    // State for date picker
-    var showDatePicker by remember { mutableStateOf(false) }
-
-    // Show date picker dialog when state is true
-    WheelDateTimePickerDialog(
-        showDatePicker = showDatePicker,
-        onDateSelected = { date ->
-            day_of_week = date // Update the day_of_week field with the selected date
-        },
-        onDismiss = {
-            showDatePicker = false
-        }
-    )
+//    // State for date picker
+//    var showDatePicker by remember { mutableStateOf(false) }
+//
+//    // Show date picker dialog when state is true
+//    WheelDateTimePickerDialog(
+//        showDatePicker = showDatePicker,
+//        onDateSelected = { date ->
+//            day_of_week = date // Update the day_of_week field with the selected date
+//        },
+//        onDismiss = {
+//            showDatePicker = false
+//        }
+//    )
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("Add Class")
+                        Text("Add Course")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -102,38 +102,12 @@ fun AddClassScreen(modifier: Modifier = Modifier, navController: NavController) 
                 .padding(horizontal = 14.dp, vertical = 12.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            OutlinedTextField(
-                value = class_name,
-                onValueChange = { class_name = it },
-                label = { Text("Class Name") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+
+            DateListDropdown(
+                selectedType = day_of_week,
+                onTypeSelected = { day_of_week = it },
+                modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(Modifier.height(12.dp))
-
-            Row {
-                OutlinedTextField(
-                    value = day_of_week,
-                    onValueChange = { day_of_week = it },
-                    label = { Text("Day of Week") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    readOnly = true // Make it read-only since it's set by date picker
-                )
-                Spacer(Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        showDatePicker = true
-                    }
-                ) {
-                    Icon(
-                        Icons.Default.DateRange,
-                        contentDescription = "Select Date",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
             Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
@@ -178,21 +152,21 @@ fun AddClassScreen(modifier: Modifier = Modifier, navController: NavController) 
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(Modifier.height(12.dp))
+//            Spacer(Modifier.height(12.dp))
 
-            TeacherDropdown(
-                selectedType = teacher,
-                onTypeSelected = { teacher = it },
-                modifier = Modifier.fillMaxWidth(),
-                loadingFunction = {
-                    if (type_of_class.isNotEmpty()) {
-                        val teachers = GymAppApplication.getInstance().teacherDatabaseHelper.getTeacherIdAndNameBySpecialization(type_of_class)
-                        teachers
-                    } else {
-                        emptyList()
-                    }
-                }
-            )
+//            TeacherDropdown(
+//                selectedType = teacher,
+//                onTypeSelected = { teacher = it },
+//                modifier = Modifier.fillMaxWidth(),
+//                loadingFunction = {
+//                    if (type_of_class.isNotEmpty()) {
+//                        val teachers = GymAppApplication.getInstance().teacherDatabaseHelper.getTeacherIdAndNameBySpecialization(type_of_class)
+//                        teachers
+//                    } else {
+//                        emptyList()
+//                    }
+//                }
+//            )
 
             Spacer(Modifier.height(12.dp))
 
@@ -227,7 +201,6 @@ fun AddClassScreen(modifier: Modifier = Modifier, navController: NavController) 
                     // Create a new class model
                     val newClass = classModel(
                         "",
-                        class_name,
                         day_of_week,
                         time_of_course,
                         capacity,
@@ -235,33 +208,13 @@ fun AddClassScreen(modifier: Modifier = Modifier, navController: NavController) 
                         price_per_class,
                         type_of_class,
                         description,
-                        teacher,
                         currentTime
                     )
 
                     // Save to Firebase and get Firebase ID
                     val firebaseId = classFirebaseRepository.addClass(newClass)
 
-                    // Save to local SQLite database
-                    val classDatabaseHelper = GymAppApplication.getInstance().classDatabaseHelper
-                    val localId = classDatabaseHelper.addClass(newClass)
-
-                    // Approach 1: Update the model with the local ID
-                    newClass.localId = localId
-
-                    // Approach 2: Sync with Firebase (mark as synced)
-                    newClass.synced = true
-
-                    // Update the class with the localId
-                    if (localId > 0) {
-                        // Update the model in the database with the synced status
-                        classDatabaseHelper.updateClass(newClass)
-
-                        // Approach 3: Log for debugging
-                        android.util.Log.d("ClassSync", "Class saved with local ID: $localId and Firebase ID: $firebaseId")
-                    }
                     navController.popBackStack()
-                    Toast.makeText(context, "Class added successfully (ID: $localId)", Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)

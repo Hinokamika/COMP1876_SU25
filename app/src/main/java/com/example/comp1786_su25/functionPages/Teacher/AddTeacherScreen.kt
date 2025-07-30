@@ -30,7 +30,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.comp1786_su25.GymAppApplication
 import com.example.comp1786_su25.components.ClassTypeDropdown
 import com.example.comp1786_su25.controllers.classFirebaseRepository
 import com.example.comp1786_su25.controllers.teacherFirebaseRepository
@@ -236,26 +235,6 @@ fun AddTeacherScreen(modifier: Modifier = Modifier, navController: NavController
                         )
 
                         val firebaseId = teacherFirebaseRepository.addTeacher(newTeacher)
-
-                        // Save to local SQLite database
-                        val teacherDatabaseHelper = GymAppApplication.getInstance().teacherDatabaseHelper
-                        val localId = teacherDatabaseHelper.addTeacher(newTeacher)
-
-                        // Approach 1: Update the model with the local ID
-                        newTeacher.localId = localId
-
-                        // Approach 2: Sync with Firebase (mark as synced)
-                        newTeacher.synced = true
-
-                        // Update the class with the localId
-                        if (localId > 0) {
-                            // Update the model in the database with the synced status
-                            teacherDatabaseHelper.updateTeacher(newTeacher)
-
-                            // Approach 3: Log for debugging
-                            android.util.Log.d("ClassSync", "Class saved with local ID: $localId and Firebase ID: $firebaseId")
-                        }
-                        Toast.makeText(context, "Teacher added", Toast.LENGTH_SHORT).show()
                         navController.popBackStack() // Navigate back after saving
                     } else {
                         Toast.makeText(context, "Please fix the errors in the form", Toast.LENGTH_SHORT).show()

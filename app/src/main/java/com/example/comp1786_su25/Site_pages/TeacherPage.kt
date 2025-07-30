@@ -10,14 +10,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,72 +51,42 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.comp1786_su25.GymAppApplication
 import com.example.comp1786_su25.controllers.teacherFirebaseRepository
 import com.example.comp1786_su25.controllers.dataClasses.teacherModel
 import com.example.comp1786_su25.functionPages.Teacher.TeacherDetailsDialog
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import kotlin.collections.plus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeacherPage(modifier: Modifier, navController: NavController) {
-    // State to hold the list of classes
+    // State to hold the list of teachers
     var teachers by remember { mutableStateOf<List<teacherModel>>(emptyList()) }
     // State for search query
     var searchQuery by remember { mutableStateOf("") }
     // State for refresh indicator
     var isRefreshing by remember { mutableStateOf(false) }
-    var networkStatusMessage by remember { mutableStateOf("") }
 
-    val syncManager = GymAppApplication.getInstance().syncManager
     val context = LocalContext.current
 
     // Function to refresh data
     fun refreshData() {
         isRefreshing = true
-
-        // Check if device is online
-        if (syncManager.isOnline()) {
-            networkStatusMessage = "Online mode: Syncing with cloud"
-
-            // First sync data between local and cloud
-            syncManager.syncAll { success ->
-                if (success) {
-                    // Then fetch all classes using the sync manager
-                    syncManager.getAllTeachers { fetchedTeachers ->
-                        teachers = fetchedTeachers
-
-                        isRefreshing = false
-                        Toast.makeText(context, "Data synced successfully", Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    // If sync failed, still try to show data from local DB
-                    val localTeachers = GymAppApplication.getInstance().teacherDatabaseHelper.getAllTeachers()
-                    teachers = localTeachers
-                    isRefreshing = false
-                    Toast.makeText(context, "Sync failed, showing local data", Toast.LENGTH_SHORT).show()
-                }
-            }
-        } else {
-            // Offline mode - use local database
-            networkStatusMessage = "Offline mode: Using local data"
-            val localTeachers = GymAppApplication.getInstance().teacherDatabaseHelper.getAllTeachers()
-            teachers = localTeachers
-
+        teacherFirebaseRepository.getTeachers { fetchedTeachers ->
+            teachers = fetchedTeachers
             isRefreshing = false
-            Toast.makeText(context, "Offline mode: Using local data", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Data loaded successfully", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Fetch classes from Firebase when the composable is first displayed
+    // Fetch teachers from Firebase when the composable is first displayed
     LaunchedEffect(key1 = true) {
         refreshData()
     }
 
-    // Filter classes based on search query
+    // Filter teachers based on search query
     val filteredTeachers = if (searchQuery.isEmpty()) {
         teachers
     } else {
@@ -149,19 +128,18 @@ fun TeacherPage(modifier: Modifier, navController: NavController) {
                 )
             )
         },
-        modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { navController.navigate("addteacher") }, // Changed from "addclass" to "addteacher"
+                onClick = {
+                    navController.navigate("addteacher")
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Add Teacher",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
+                Icon(Icons.Default.Add, contentDescription = "Add Teacher")
             }
-        }
+        },
+        modifier = Modifier.fillMaxSize(),
     ) { padding ->
         Surface(
             modifier = Modifier
@@ -178,7 +156,7 @@ fun TeacherPage(modifier: Modifier, navController: NavController) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Search teachers") }, // Changed label
+                    label = { Text("Search teachers") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 16.dp),
@@ -209,16 +187,16 @@ fun TeacherPage(modifier: Modifier, navController: NavController) {
                         ) {
                             Text(
                                 text = if (teachers.isEmpty())
-                                    "No teachers found" // Changed message
+                                    "No teachers found"
                                 else
-                                    "No teachers match your search", // Changed message
+                                    "No teachers match your search",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
                             if (teachers.isEmpty()) {
                                 Text(
-                                    text = "Add a teacher using the + button", // Changed message
+                                    text = "Add a teacher using the + button",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.secondary,
                                     modifier = Modifier.padding(top = 8.dp)
@@ -260,118 +238,300 @@ fun TeacherCard(teacherData: teacherModel, navController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .animateContentSize(
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
                     stiffness = Spring.StiffnessLow
                 )
             )
-            .clickable { showDetailsDialog = true }, // Make card clickable
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .clickable { showDetailsDialog = true },
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(24.dp)
                 .fillMaxWidth()
         ) {
-            Text(
-                text = teacherData.name,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
+            // Header with Teacher Name and Instructor Badge
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp),
+                    .padding(bottom = 20.dp),
+                verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Class name",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
                     Text(
                         text = teacherData.name,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    ) {
+                        Text(
+                            text = "• ${teacherData.specialization}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "Experience Level: Expert",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Age",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    Text(
-                        text = teacherData.age,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
+                // Age Badge with improved design
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.secondary,
+                    shadowElevation = 4.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "AGE",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondary,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = teacherData.age,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSecondary,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
                 }
             }
 
+            // Enhanced Stats Row with better visual hierarchy
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(bottom = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Email",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    Text(
-                        text = teacherData.email,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
+                // Experience Card
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    shadowElevation = 2.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Experience",
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .padding(bottom = 8.dp)
+                        )
+                        Text(
+                            text = "RATING",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp
+                        )
+                        Text(
+                            text = "4.8★",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Phone",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                    Text(
-                        text = teacherData.phone,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
+                // Status Card with enhanced styling
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shadowElevation = 2.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Status",
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .padding(bottom = 8.dp)
+                        )
+                        Text(
+                            text = "STATUS",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp
+                        )
+                        Text(
+                            text = "ACTIVE",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
             }
 
+            // Contact Information with improved readability
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
+                    .padding(bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "Specialization",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-                Text(
-                    text = teacherData.specialization,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
+                // Email Card
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shadowElevation = 1.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(end = 12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = "Email",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "EMAIL ADDRESS",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            )
+                            Text(
+                                text = teacherData.email,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Phone Card
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shadowElevation = 1.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(end = 12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = "Phone",
+                                tint = MaterialTheme.colorScheme.onSecondary,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "PHONE NUMBER",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            )
+                            Text(
+                                text = teacherData.phone,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                    }
+                }
             }
 
+            // Enhanced Action Button
             Button(
                 onClick = { showDetailsDialog = true },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 4.dp,
+                    pressedElevation = 8.dp
+                )
             ) {
-                Text("View Details")
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "View Details",
+                    modifier = Modifier
+                        .size(20.dp)
+                        .padding(end = 8.dp)
+                )
+                Text(
+                    "VIEW TEACHER DETAILS",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                )
             }
         }
     }

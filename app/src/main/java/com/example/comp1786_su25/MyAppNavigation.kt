@@ -9,6 +9,8 @@ import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.example.comp1786_su25.functionPages.Class.AddClassScreen
 import com.example.comp1786_su25.functionPages.Class.UpdateClassScreen
+import com.example.comp1786_su25.functionPages.Courses.AddClassDetailScreen
+import com.example.comp1786_su25.functionPages.Courses.UpdateClassDetailScreen
 import com.example.comp1786_su25.functionPages.Teacher.AddTeacherScreen
 import com.example.comp1786_su25.functionPages.Teacher.UpdateTeacherScreen
 import com.example.comp1786_su25.functionPages.User.UpdateUserScreen
@@ -66,6 +68,42 @@ fun MyAppNavigation(modifier: Modifier = Modifier, authViewModel: AuthViewModel)
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")
             UpdateUserScreen(modifier ,navController, userId)
+        }
+        composable(
+            route = "add_class_detail/{classId}/{courseId}",
+            arguments = listOf(
+                navArgument("classId") { type = NavType.StringType },
+                navArgument("courseId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val classId = backStackEntry.arguments?.getString("classId") ?: ""
+            val courseId = backStackEntry.arguments?.getString("courseId") ?: ""
+
+            AddClassDetailScreen(
+                navController = navController,
+                classId = classId,
+                courseId = courseId
+            )
+        }
+
+        composable(
+            route = "update_class_detail/{classId}/{courseId}/{detailId}",
+            arguments = listOf(
+                navArgument("classId") { type = NavType.StringType },
+                navArgument("courseId") { type = NavType.StringType },
+                navArgument("detailId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val classId = backStackEntry.arguments?.getString("classId") ?: ""
+            val courseId = backStackEntry.arguments?.getString("courseId") ?: ""
+            val detailId = backStackEntry.arguments?.getString("detailId") ?: ""
+
+            UpdateClassDetailScreen(
+                navController = navController,
+                classId = classId,
+                courseId = courseId,
+                detailId = detailId
+            )
         }
     }
 }

@@ -5,23 +5,17 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -39,9 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.comp1786_su25.GymAppApplication
 import com.example.comp1786_su25.components.ClassTypeDropdown
-import com.example.comp1786_su25.components.WheelDateTimePickerDialog
+import com.example.comp1786_su25.components.DateListDropdown
 import com.example.comp1786_su25.controllers.classFirebaseRepository
 import com.example.comp1786_su25.controllers.dataClasses.classModel
 
@@ -52,7 +45,6 @@ fun UpdateClassScreen(
     navController: NavController,
     classId: String? = null
 ) {
-    var class_name by remember { mutableStateOf("") }
     var day_of_week by remember { mutableStateOf("") }
     var time_of_course by remember { mutableStateOf("") }
     var capacity by remember { mutableStateOf("") }
@@ -60,41 +52,19 @@ fun UpdateClassScreen(
     var price_per_class by remember { mutableStateOf("") }
     var type_of_class by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var teacher by remember { mutableStateOf("") }
+    var createdTime by remember { mutableStateOf("") }
     var id by remember { mutableStateOf("") }
-    var context = LocalContext.current
-
-    // State for date picker
-    var showDatePicker by remember { mutableStateOf(false) }
-    var selectedDate by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     // Load class data if classId is provided
     LaunchedEffect(key1 = classId) {
         if (classId != null) {
             // Try to load from local database first
-            val classDatabaseHelper = GymAppApplication.getInstance().classDatabaseHelper
-            val localClass = classDatabaseHelper.getClassById(classId)
-
-            if (localClass != null) {
-                // Local data found, use it
-                id = localClass.id
-                class_name = localClass.class_name
-                day_of_week = localClass.day_of_week
-                time_of_course = localClass.time_of_course
-                capacity = localClass.capacity
-                duration = localClass.duration
-                price_per_class = localClass.price_per_class
-                type_of_class = localClass.type_of_class
-                description = localClass.description
-                teacher = localClass.teacher
-                android.util.Log.d("ClassSync", "Loaded class from local database: $id")
-            } else {
                 // Fall back to Firebase if not in local database
                 classFirebaseRepository.getClassById(classId) { classData ->
                     if (classData != null) {
                         // Set values from Firebase
-                        id = classData.id ?: ""
-                        class_name = classData.class_name
+                        id = classData.id
                         day_of_week = classData.day_of_week
                         time_of_course = classData.time_of_course
                         capacity = classData.capacity
@@ -102,31 +72,19 @@ fun UpdateClassScreen(
                         price_per_class = classData.price_per_class
                         type_of_class = classData.type_of_class
                         description = classData.description
-                        teacher = classData.teacher
+                        createdTime = classData.createdTime
                         android.util.Log.d("ClassSync", "Loaded class from Firebase: $id")
                     }
                 }
-            }
         }
     }
-
-    // Show date picker dialog when state is true
-    WheelDateTimePickerDialog(
-        showDatePicker = showDatePicker,
-        onDateSelected = { date ->
-            day_of_week = date // Update the day_of_week field with the selected date
-        },
-        onDismiss = {
-            showDatePicker = false
-        }
-    )
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(if (classId != null) "Update Class" else "Add Class")
+                        Text("Update Course")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -143,36 +101,12 @@ fun UpdateClassScreen(
                 .padding(horizontal = 14.dp, vertical = 12.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            OutlinedTextField(
-                value = class_name,
-                onValueChange = { class_name = it },
-                label = { Text("Class Name") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+
+            DateListDropdown(
+                selectedType = day_of_week,
+                onTypeSelected = { day_of_week = it },
+                modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(12.dp))
-            Row {
-                OutlinedTextField(
-                    value = day_of_week,
-                    onValueChange = { day_of_week = it },
-                    label = { Text("Day of Week") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    readOnly = true // Make it read-only since it's set by date picker
-                )
-                Spacer(Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        showDatePicker = true
-                    }
-                ) {
-                    Icon(
-                        Icons.Default.DateRange,
-                        contentDescription = "Select Date",
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
             Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
@@ -220,16 +154,6 @@ fun UpdateClassScreen(
             Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
-                value = teacher,
-                onValueChange = { teacher = it },
-                label = { Text("Teacher") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text("Description") },
@@ -256,11 +180,9 @@ fun UpdateClassScreen(
 
             Button(
                 onClick = {
-                    // Prepare the updated class model
-                    val currentTime = System.currentTimeMillis().toString()
+                    // Create updated class model
                     val updatedClass = classModel(
                         id = id,
-                        class_name = class_name,
                         day_of_week = day_of_week,
                         time_of_course = time_of_course,
                         capacity = capacity,
@@ -268,23 +190,17 @@ fun UpdateClassScreen(
                         price_per_class = price_per_class,
                         type_of_class = type_of_class,
                         description = description,
-                        teacher = teacher,
-                        createdTime = currentTime
+                        createdTime = createdTime
                     )
 
                     // Update in Firebase
-                    classFirebaseRepository.updateClass(updatedClass)
+                    classFirebaseRepository.updateClass(updatedClass).addOnSuccessListener {
+                        Toast.makeText(context, "Class updated successfully", Toast.LENGTH_SHORT).show()
+                        navController.popBackStack()
+                    }.addOnFailureListener { exception ->
+                        // If Firebase update fails, still update locally but mark as not synced
 
-                    // Update in local SQLite database
-                    val classDatabaseHelper = GymAppApplication.getInstance().classDatabaseHelper
-                    val rowsUpdated = classDatabaseHelper.updateClass(updatedClass)
-
-                    // Log the update result
-                    android.util.Log.d("ClassSync", "Updated class in local DB. Rows affected: $rowsUpdated")
-
-                    Toast.makeText(context, "Class updated successfully in cloud and local database", Toast.LENGTH_SHORT).show()
-
-                    navController.popBackStack()
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
