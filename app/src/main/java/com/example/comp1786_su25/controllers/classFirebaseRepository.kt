@@ -14,18 +14,12 @@ import kotlinx.coroutines.tasks.await
 
 object classFirebaseRepository {
     private val db = FirebaseDatabase.getInstance().getReference("classes")
-    private val dbCourses = FirebaseDatabase.getInstance().getReference("courses")
-    // Remove the separate classDetails reference since we're storing them nested
 
     // Class Model CRUD Operations (Parent)
     fun addClass(classModel: classModel): String {
         val classId = db.push().key ?: ""
         db.child(classId).setValue(classModel.copy(id = classId))
         return classId
-    }
-
-    fun getClassesTask(): Task<DataSnapshot> {
-        return db.get()
     }
 
     fun getClasses(callback: (List<classModel>) -> Unit) {
